@@ -108,7 +108,7 @@ const getNotebystatus = async (req, res) => {
     }
 };
 
-const TDeleteNote = async (req, res) => {
+const TemporalDeleteNote = async (req, res) => {
     try {
         const { status } = req.body;
         const note = await Note.findOneAndUpdate(
@@ -128,6 +128,18 @@ const TDeleteNote = async (req, res) => {
         console.error(`Error updating note status to deleted: ${err.message}`);
     }
 };
+const permanentlyDeleteNote = async (req, res) => {
+    try {
+        const note = await Note.findOneAndDelete({ title: req.params.title, status: 'deleted' });
+        if (!note) {
+            return res.status(404).json({ message: 'Note not found' });
+        }
+        res.status(200).json({ message: 'Note permanently deleted' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+        console.error(`Error  deleting note permanently: ${err.message}`);
+    }
+};
 
 module.exports = {
     createNote,
@@ -135,6 +147,7 @@ module.exports = {
     getNoteBytitle,
     updateNote,
     ArchiveNote,
-    TDeleteNote,
-    getNotebystatus
+    TemporalDeleteNote,
+    getNotebystatus,
+    permanentlyDeleteNote
 }
