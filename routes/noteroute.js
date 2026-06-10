@@ -3,7 +3,7 @@ const router = express.Router();
 
 const {
     createNote,
-    getNotes,
+    getAllNotes,
     getNoteBytitle,
     updateNote,
     ArchiveNote,
@@ -14,7 +14,7 @@ const {
 
 
 router.post('/', createNote);
-router.get('/', getNotes);
+router.get('/', getAllNotes);
 router.get('/:title', getNoteBytitle);
 router.put('/:title', updateNote);
 router.patch('/:title/status', getNotebystatus);

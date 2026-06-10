@@ -1,4 +1,5 @@
 const Note = require('../model/note');
+const Counter = require('../model/counter');
 
 const createNote = async (req, res) => {
     try{
@@ -11,10 +12,18 @@ const createNote = async (req, res) => {
             return res.status(400).json({message: 'Title and content are required'})
         }
 
+        // Atomically increment and get the next ID
+        const counter = await Counter.findOneAndUpdate(
+            { _id: 'noteId' },
+            { $inc: { seq: 1 } },
+            { new: true, upsert: true }
+        );
+
         const newNote = new Note({
-            title : Ntitle || 'Untitled Note',
-            content : Ncontent || 'No content'
-        })
+            id: counter.seq,
+            title: Ntitle || 'Untitled Note',
+            content: Ncontent || 'No content'
+        });
 
         await newNote.save();
 
@@ -26,9 +35,9 @@ const createNote = async (req, res) => {
     }
 }
 
-const getNotes = async (req, res) => {
+const getAllNotes = async (req, res) => {
     try {
-        const notes = await Note.find();
+        const notes = await Note.find().sort(`desc`);
         res.status(200).json(notes);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -38,7 +47,7 @@ const getNotes = async (req, res) => {
 
 const getNoteBytitle = async (req, res) => {
     try {
-        const note = await Note.findOne({ title: req.params.title });
+        const note = await Note.findOne({ id: req.params.id });
         if (!note) {
             return res.status(404).json({ message: 'Note not found' });
         }
@@ -56,7 +65,7 @@ const updateNote = async (req, res) => {
         let Ncontent = content.trim();
 
         const note = await Note.findOneAndUpdate(
-            { title: req.params.title },
+            { id: req.params.id },
             { 
                 title: Ntitle || 'Untitled Note', 
                 content: Ncontent || 'No content'
@@ -80,7 +89,7 @@ const ArchiveNote = async (req, res) => {
     try {
         const { status } = req.body;
         const note = await Note.findOneAndUpdate(
-            req.params.title, 
+            req.params.id, 
             { status : 'archived', 
             updateAt: new Date() }, 
             { new: true }
@@ -101,6 +110,9 @@ const getNotebystatus = async (req, res) => {
     try {
         const { status } = req.params;
         const notes = await Note.find({ status });
+        if (notes.length === 0) {
+            return res.status(404).json({ message: 'No notes found with the specified status' });
+        }
         res.status(200).json(notes);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -112,7 +124,7 @@ const TemporalDeleteNote = async (req, res) => {
     try {
         const { status } = req.body;
         const note = await Note.findOneAndUpdate(
-            req.params.title, 
+            { id: req.params.id },
             { status : 'deleted', 
             updateAt: new Date() }, 
             { new: true }
@@ -130,7 +142,7 @@ const TemporalDeleteNote = async (req, res) => {
 };
 const permanentlyDeleteNote = async (req, res) => {
     try {
-        const note = await Note.findOneAndDelete({ title: req.params.title, status: 'deleted' });
+        const note = await Note.findOneAndDelete({ id: req.params.id, status: 'deleted' });
         if (!note) {
             return res.status(404).json({ message: 'Note not found' });
         }
@@ -143,7 +155,7 @@ const permanentlyDeleteNote = async (req, res) => {
 
 module.exports = {
     createNote,
-    getNotes,
+    getAllNotes,
     getNoteBytitle,
     updateNote,
     ArchiveNote,
